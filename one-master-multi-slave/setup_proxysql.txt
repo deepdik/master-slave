@@ -1,0 +1,18 @@
+# Connect to ProxySQL admin interface
+docker exec -it proxysql mysql -u admin -padmin -h 127.0.0.1 -P 6032
+
+# Add master and slaves to ProxySQL
+INSERT INTO mysql_servers (hostgroup_id, hostname, port) VALUES (1, 'master', 3306);
+INSERT INTO mysql_servers (hostgroup_id, hostname, port) VALUES (2, 'slave1', 3306), (2, 'slave2', 3306);
+
+# Configure query rules
+INSERT INTO mysql_query_rules (rule_id, match_pattern, destination_hostgroup) VALUES (1, '^SELECT.*$', 2);  -- Route SELECT to slaves
+INSERT INTO mysql_query_rules (rule_id, match_pattern, destination_hostgroup) VALUES (2, '.*', 1);  -- Route all other queries to master
+
+INSERT INTO mysql_users (username, password, default_hostgroup) VALUES ('user', 'password', 1);
+
+
+LOAD MYSQL SERVERS TO RUNTIME;
+SAVE MYSQL SERVERS TO DISK;
+LOAD MYSQL QUERY RULES TO RUNTIME;
+SAVE MYSQL QUERY RULES TO DISK;

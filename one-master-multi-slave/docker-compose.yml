@@ -1,0 +1,78 @@
+#version: '3.8'
+
+services:
+  master:
+    image: mysql:8.0
+    container_name: mysql-master-multi-slave
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: testdb
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - ./master_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    command:
+      --server-id=1
+      --log-bin='mysql-bin-1.log'
+      --binlog-format='ROW'
+
+  slave1:
+    image: mysql:8.0
+    container_name: mysql-slave1-multi-slave
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: testdb
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - ./slave1_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    command:
+      --server-id=2
+      --relay-log='mysql-relay-bin'
+      --log-bin='mysql-bin-2.log'
+      --binlog-format='ROW'
+    depends_on:
+      - master
+
+  slave2:
+    image: mysql:8.0
+    container_name: mysql-slave2-multi-slave
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: testdb
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - ./slave2_data:/var/lib/mysql
+    ports:
+      - "3308:3306"
+    command:
+      --server-id=3
+      --relay-log='mysql-relay-bin'
+      --log-bin='mysql-bin-3.log'
+      --binlog-format='ROW'
+    depends_on:
+      - master
+
+  proxysql:
+    image: proxysql/proxysql
+    container_name: proxysql
+    ports:
+      - "6033:6033"  # ProxySQL default port
+      - "6032:6032"  # Admin port
+    volumes:
+      - ./proxysql_data:/etc/proxysql
+    depends_on:
+      - master
+      - slave1
+      - slave2
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        sleep 10 &&
+        proxysql -f
