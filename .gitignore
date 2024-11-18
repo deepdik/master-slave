@@ -1,0 +1,5 @@
+/env
+/master_data
+/slave_data
+.DS_Store
+.idea/
